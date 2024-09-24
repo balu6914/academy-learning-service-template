@@ -46,6 +46,10 @@ handlers:
   tendermint:
     args: {}
     class_name: TendermintHandler
+  api_handler:
+    args: {}
+    class_name: APIHandler
+    dotted_path: packages.valory.skills.learning_abci.handlers  # Added the APIHandler
 models:
   abci_dialogues:
     args: {}
