@@ -11,7 +11,6 @@
 #
 #   Unless required by applicable law or agreed to in writing, software
 #   distributed under the License is distributed on an "AS IS" BASIS,
-#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 #
@@ -56,15 +55,16 @@ IpfsHandler = BaseIpfsHandler
 
 # New API Call and Transaction Handler
 class APIHandler(Handler):
-    """Handler to make an external API call and send a transaction."""
+    """Handler to make an external API call and send transactions."""
 
     def setup(self):
         """Setup the handler."""
         self.web3 = Web3(Web3.HTTPProvider(os.getenv("ETHEREUM_RPC_URL")))
         self.private_key = os.getenv("ETHEREUM_PRIVATE_KEY")
+        self.safe_contract_address = os.getenv("SAFE_CONTRACT_ADDRESS")
 
     def send_transaction(self):
-        """Send a transaction to the Ethereum blockchain."""
+        """Send a standard transaction to the Ethereum blockchain."""
         try:
             account = self.web3.eth.account.privateKeyToAccount(self.private_key)
             tx = {
@@ -81,6 +81,24 @@ class APIHandler(Handler):
         except Exception as e:
             print(f"Error during transaction: {e}")
 
+    def send_safe_eth_transfer(self):
+        """Send ETH to the Gnosis Safe contract."""
+        try:
+            account = self.web3.eth.account.privateKeyToAccount(self.private_key)
+            tx = {
+                "to": self.safe_contract_address,  # The Gnosis Safe contract address
+                "value": self.web3.toWei(0.01, "ether"),  # Sending 0.01 ether
+                "gas": 21000,
+                "gasPrice": self.web3.toWei("50", "gwei"),
+                "nonce": self.web3.eth.getTransactionCount(account.address),
+            }
+
+            signed_tx = self.web3.eth.account.signTransaction(tx, private_key=self.private_key)
+            tx_hash = self.web3.eth.sendRawTransaction(signed_tx.rawTransaction)
+            print(f"Safe ETH transfer transaction sent: {tx_hash.hex()}")
+        except Exception as e:
+            print(f"Error during Safe ETH transfer: {e}")
+
     def handle(self, message):
         """Handle incoming messages by making an API request and sending a transaction."""
         try:
@@ -95,6 +113,7 @@ class APIHandler(Handler):
                 print("API call successful!")
                 print(f"Ethereum price: {response.json()}")
                 self.send_transaction()  # Send transaction after successful API call
+                self.send_safe_eth_transfer()  # Send ETH transfer to Safe
             else:
                 print(f"API call failed with status code: {response.status_code}")
         except Exception as e:
