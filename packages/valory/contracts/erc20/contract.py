@@ -99,3 +99,4 @@ class ERC20(Contract):
         checksumed_spender = ledger_api.api.to_checksum_address(spender)
         data = contract_instance.encodeABI("approve", args=(checksumed_spender, amount))
         return {"data": bytes.fromhex(data[2:])}
+
